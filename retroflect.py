@@ -164,6 +164,8 @@ class PingUtility(ctk.CTk):
 
 
     def save_not_in_use_ip(self, ip):
+            with open(NOT_IN_USE_FILE, 'a'):
+                pass # create file if not exist
             with open(NOT_IN_USE_FILE, 'r+') as wf:
                 lines = wf.readlines()
                 if f"{ip}\n" not in lines:
