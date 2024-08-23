@@ -32,7 +32,7 @@ And it was pulled out as an independent project because there are more apps can 
 
 ## Instructions
 
-1. Open `Ping.and.Retroflect.Utility.exe with Administrator.`
+1. Open `Ping.and.Retroflect.Utility.exe` with Administrator.
 2. Choose unused IP and ping it. (Five commonly unused IPs are listed in app)
 3. If the IP is unused, it will be saved to the option menu below.
 4. Choose a IP and click `Retroflect`.
