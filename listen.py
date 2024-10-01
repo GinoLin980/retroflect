@@ -26,7 +26,7 @@ def listen_for_udp_data(ip, port, timeout=5):
         sock.close()
 
 # Example usage
-ip_to_listen = "127.0.0.1"  # localhost
+ip_to_listen = "0.0.0.0"  # listen on 0.0.0.0 to receive data from any IP
 port_to_listen = 8000
 
 data_received = listen_for_udp_data(ip_to_listen, port_to_listen)
