@@ -24,18 +24,19 @@ And it was pulled out as an independent project because there are more apps can 
 
   So a ping tool is built in app.
 
-### IP List:
+### IP and Port List:
 
-* For those who will use Retroflect frequently, manually entering the IP would be annoying.
+* For those who will use Retroflect frequently, manually entering the IP and port would be annoying.
 
-  Not a problem anymore! The unused IPs will be saved in a list after you pinged it.
+  Not a problem anymore! The unused IPs and ports will be saved in a list after you pinged it.
 
 ## Instructions
 
 1. Open `Ping.and.Retroflect.Utility.exe` with Administrator.
 2. Choose unused IP and ping it. (Five commonly unused IPs are listed in app)
 3. If the IP is unused, it will be saved to the option menu below.
-4. Choose a IP and click `Retroflect`.
-5. Configure the data sending app(server) to `<IP YOU CHOSE TO RUN RETROFLECT>` and port to `8000`
-6. Configure the data receiving app(client) to `0.0.0.0:8000`.
-7. DONE!!!
+4. Choose a IP, enter the port you want, and then  click `Retroflect`.
+5. Used ports will be saved to the option menu.
+6. Configure the data sending app(server) to `<IP YOU CHOSE TO RUN RETROFLECT>` and port to `<PORT YOU CHOSE TO RUN RETROFLECT>`
+7. Configure the data receiving app(client) to `0.0.0.0:<PORT YOU CHOSE TO RUN RETROFLECT>`.
+8. DONE!!!
