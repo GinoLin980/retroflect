@@ -1,19 +1,22 @@
-import customtkinter as ctk
 from tkinter import messagebox
-from ping3 import ping, verbose_ping
-import logging
-import ipaddress
 from typing import List, Union
-import pydivert
-import os
+import customtkinter as ctk
+from ping3 import ping
+import ipaddress
 import threading
-import re
+import pydivert
+import logging
+import toml
 import sys
+import os
+import re
 
 ### taken from https://github.com/twisteroidambassador/retroflect/blob/master/retroflect.py
 DEFAULT_PRIORITY = 822  # A low-ish priority, chosen randomly
-PORT = 8000 # Change if needed
+# PORT = 8000 # Change if needed
 IPAddressType = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
+# File to save not in use IP addresses
+NETWORK_CONFIG = "retroflect_config.toml"
 
 logger = logging.getLogger(__package__)
 
@@ -63,8 +66,6 @@ def run_reflect(reflect_address: str, shield: int = None, priority: int = DEFAUL
                  f'with Administrator privileges?\n{e!r}')
 ###
 
-# File to save not in use IP addresses
-NOT_IN_USE_FILE = "not_in_use_ips.txt"
 
 class PingUtility(ctk.CTk):
     def __init__(self):
@@ -115,17 +116,29 @@ class PingUtility(ctk.CTk):
 
         # Option menu for IP addresses
         self.selected_ip = ctk.StringVar()
-        self.ips = self.load_not_in_use_ips()
+        self.ips = self.load_network_config()["IP"]
         if self.ips:
             self.selected_ip.set(self.ips[0])
         else:
             self.selected_ip.set("")
-        self.option_menu = ctk.CTkOptionMenu(self, values=self.ips, variable=self.selected_ip)
-        self.option_menu.grid(row=5, column=0, padx=10, pady=10)
+
+        # Option menu for IP addresses
+        self.selected_port = ctk.StringVar()
+        self.port = self.load_network_config()["PORT"]
+        if self.port:
+            self.selected_port.set(self.port[0])
+        else:
+            self.selected_port.set("")
+
+        self.ip_option_menu = ctk.CTkOptionMenu(self, values=self.ips, variable=self.selected_ip)
+        self.ip_option_menu.grid(row=5, column=0, padx=10, pady=10)
+
+        self.port_option_menu = ctk.CTkComboBox(self, values=self.port, variable=self.selected_port)
+        self.port_option_menu.grid(row=6, column=0, padx=10, pady=10)
 
         # Retroflect button
         self.retroflect_button = ctk.CTkButton(self, text="Retroflect", command=self.retroflect_command)
-        self.retroflect_button.grid(row=6, column=0, padx=10, pady=10)
+        self.retroflect_button.grid(row=7, column=0, padx=10, pady=10)
 
     def ping_address(self):
         hostname = self.entry.get()
@@ -149,7 +162,8 @@ class PingUtility(ctk.CTk):
                 else:
                     self.output_text.insert("end", f"{hostname} is not in use.\n")
                     self.output_text.tag_add("not_in_use", "end-2l", "end-1l")
-                    self.save_not_in_use_ip(hostname)
+                    self.ips.append(hostname)
+                    self.save_network_config()
             except Exception as e:
                 if str(e) != "not readable":
                     self.output_text.insert("end", f"An unexpected error occurred: {e}\n")
@@ -163,35 +177,46 @@ class PingUtility(ctk.CTk):
 
 
 
-    def save_not_in_use_ip(self, ip):
-            with open(NOT_IN_USE_FILE, 'a'):
+    def save_network_config(self):
+            with open(NETWORK_CONFIG, 'a'):
                 pass # create file if not exist
-            with open(NOT_IN_USE_FILE, 'r+') as wf:
-                lines = wf.readlines()
-                if f"{ip}\n" not in lines:
-                    wf.write(f"{ip}\n")
+            with open(NETWORK_CONFIG, 'r+')as wf:
+                try:
+                    self.port.append(self.port_option_menu.get())
+                    self.port_option_menu.configure(values=self.port)
+                except:
+                    pass
+                toml.dump({"IP": set(self.ips), "PORT": set(self.port)}, wf)
 
-    def load_not_in_use_ips(self):
-        if os.path.exists(NOT_IN_USE_FILE):
-            with open(NOT_IN_USE_FILE, "r") as file:
-                return [line.strip() for line in file.readlines()]
-        return []
+    def load_network_config(self):
+        if os.path.exists(NETWORK_CONFIG):
+            with open(NETWORK_CONFIG, "r") as file:
+                result = toml.load(file)
+                return result
+        return {"IP": [], "PORT": []}
 
     def update_option_menu(self):
-        self.ips = self.load_not_in_use_ips()
-        self.option_menu.configure(values=self.ips)
+        self.ips = self.load_network_config()["IP"]
+        self.port = self.load_network_config()["PORT"]
+        self.ip_option_menu.configure(values=self.ips)
         if self.ips:
             self.selected_ip.set(self.ips[0])
+        self.port_option_menu.configure(values=self.port)
+        if self.port:
+            self.selected_port.set(self.port[0])
 
     def retroflect_command(self):
         ip = self.selected_ip.get()
+        port = self.port_option_menu.get()
+        self.save_network_config()
+        self.update_option_menu()
         if ip:
             if self.reflect_thread != None:
                 messagebox.showinfo("Retroflect", "Retroflect is already running.\nIf you want to use another IP, please restart the program.")
                 return
 
             try:
-                self.reflect_thread = threading.Thread(target=run_reflect, args=(ip, PORT))
+                self.reflect_thread = threading.Thread(target=run_reflect, args=(ip, port))
                 self.reflect_thread.daemon = True # make sure thread closes after the main loop ends
                 self.reflect_thread.start()
                 self.output_text.insert("end", f"Starting Retroflect for {ip}.\n")
@@ -200,6 +225,7 @@ class PingUtility(ctk.CTk):
         else:
             messagebox.showwarning("Warning", "No IP address selected")
 
+    
 if __name__ == "__main__":
     if sys.platform.startswith('win'):
         import ctypes
