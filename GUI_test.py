@@ -4,7 +4,6 @@ import customtkinter as ctk
 from ping3 import ping
 import ipaddress
 import threading
-import pydivert
 import logging
 import toml
 import sys
@@ -17,55 +16,6 @@ DEFAULT_PRIORITY = 822  # A low-ish priority, chosen randomly
 IPAddressType = Union[ipaddress.IPv4Address, ipaddress.IPv6Address]
 # File to save not in use IP addresses
 NETWORK_CONFIG = "retroflect_config.toml"
-
-logger = logging.getLogger(__package__)
-
-def reflect(
-        reflect_hosts: List[IPAddressType],
-        shield_ports: List[int],
-        priority: int,
-):
-    filter_hosts = ' or '.join(
-        f'{"ipv6" if host.version == 6 else "ip"}.DstAddr == {host}'
-        for host in reflect_hosts
-    )
-    filter_str = f'outbound and (tcp or udp) and ({filter_hosts})'
-    if shield_ports:
-        filter_ports = ' or '.join(
-            f'tcp.DstPort == {port} or udp.DstPort == {port}' for port in shield_ports)
-        filter_str = f'({filter_str}) or ' \
-                     f'(inbound and ({filter_ports}))'
-
-    with pydivert.WinDivert(filter_str, priority=priority) as wd:
-        for packet in wd:
-            logger.debug('Received packet:\n%r', packet)
-            if packet.is_outbound:
-                (packet.src_addr, packet.dst_addr) = \
-                    (packet.dst_addr, packet.src_addr)
-                packet.direction = pydivert.Direction.INBOUND
-                logger.debug('Reflecting packet:\n%r', packet)
-                wd.send(packet)
-            else:
-                logger.debug('Dropping packet')
-
-
-def run_reflect(reflect_address: str, shield: int = None, priority: int = DEFAULT_PRIORITY, verbose: bool = False):
-    reflect_address = [ipaddress.ip_address(reflect_address)]
-    shield = [shield]
-    
-    loglevel = logging.DEBUG if verbose else logging.WARNING
-    logging.basicConfig(level=loglevel)
-
-    if not -1000 <= priority <= 1000:
-        sys.exit('Priority level must be between -1000 and 1000 inclusive')
-
-    try:
-        reflect(reflect_address, shield, priority)
-    except PermissionError as e:
-        sys.exit(f'Caught PermissionError: are you running this program '
-                 f'with Administrator privileges?\n{e!r}')
-###
-
 
 class PingUtility(ctk.CTk):
     def __init__(self):
